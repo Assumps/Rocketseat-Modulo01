@@ -10,13 +10,41 @@ server.use(express.json());
 //array de usuarios
 const users = ['Diego', 'Cláudio', 'João Vitor']
 
+//middleware global
+server.use((req , res , next) => {
+    console.time(`request`)
+    console.log(`Metodo: ${req.method}; URL: ${req.url}`)
+    next()
+    console.timeEnd(`request`)
+})
+
+// criando middleware nao globais
+function checkUserExist(req, res,next) {
+    if(!req.body.name){
+        return res.status(400).json({ error: "user name is required"})
+    }
+
+    return next();
+};
+
+// criando middleware nao globais de erros em API
+function checkUserInArray(req,res,next){
+    const user = users[req.params.index];
+    if(!users){
+        return res.status(400).json({ error: "user does not exists"})
+    }
+    req.user = user
+
+    return next();
+}
+
 //metodo Get de todos os usuarios
-server.get('/users',(req , res) => {
+server.get('/users',checkUserInArray,(req , res) => {
     return res.json(users)
 })
 
 //metodo post para inserção de usuarios
-server.post('/users',(req , res) => {
+server.post('/users', checkUserExist,(req , res) => {
     const {name} = req.body;
 
     users.push(name);
@@ -25,7 +53,7 @@ server.post('/users',(req , res) => {
 });
 
 //metodo put de Edição
-server.put('/users/:index',(req , res) => {
+server.put('/users/:index', checkUserExist,(req , res) => {
     const { index } = req.params;
     const { name } = req.body;
 
@@ -35,7 +63,7 @@ server.put('/users/:index',(req , res) => {
 });
 
 //metodo de deletar usuario
-server.delete('/users/:index',(req , res) => {
+server.delete('/users/:index',checkUserInArray,(req , res) => {
     const { index } = req.params;
 
     users.splice(index,1);
@@ -44,11 +72,10 @@ server.delete('/users/:index',(req , res) => {
 });
 
 //metodo get passando parametros
-server.get('/users/:index',(req , res) => {
+server.get('/users/:index',checkUserInArray,(req , res) => {
     //const nome = req.query.nome;
     //return res.json({message: `Hello ${nome}`})
-    const { index } = req.params;
-    return res.json(users[index]);
+    return res.json(req.user);
 });
 
 //fazer a api rodar na porta 3000 com .listen()
